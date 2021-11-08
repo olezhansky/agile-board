@@ -2,9 +2,10 @@ import { AppBar, Box, FormControl, Grid, MenuItem, Select, Toolbar, Typography }
 import { observer } from 'mobx-react-lite'
 import React from 'react'
 import useStore from '../../hooks/useStore'
+import User from '../common/User'
 
 const Header = () => {
-    const { boards } = useStore();
+    const { boards, users } = useStore();
     return (
         <AppBar position="static">
             <Toolbar variant="dense">
@@ -17,15 +18,21 @@ const Header = () => {
                             <FormControl>
                                 <Select
                                     style={{ backgroundColor: '#fff', marginLeft: 10 }}
-                                    // value={boards?.active.id}
-                                    onChange={() => {}}
+                                    value={boards?.active?.id || ''}
+                                    id="active"
+                                    onChange={(event) => {
+                                        const {value} = event.target;
+
+                                        boards.selectBoard(value);
+                                    }}
+                                    native
                                 >
-                                    <MenuItem value="" disabled>
+                                    <option value="" disabled>
                                         -
-                                    </MenuItem>
-                                    {boards.list.map((b) => {
+                                    </option>
+                                    {boards?.boards.map((board) => {
                                         return (
-                                            <MenuItem key={b.id} value={b?.value}>{b?.title}</MenuItem>
+                                            <option key={board?.id} value={board?.id}>{board?.title}</option>
                                         )
                                     })}
                                 </Select>
@@ -33,7 +40,7 @@ const Header = () => {
                         </Box>
                     </Grid>
                     <Grid item>
-
+                        <User user={users?.me}/>
                     </Grid>
                 </Grid>
             </Toolbar>

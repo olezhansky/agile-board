@@ -1,11 +1,12 @@
-import { types, flow, getParent } from "mobx-state-tree";
+import { types, flow, getParent, onSnapshot } from "mobx-state-tree";
 import apiCall from "../api";
+import { User } from "./users";
 
 const Task = types.model("Task", {
   id: types.identifier,
   title: types.string,
   description: types.string,
-  assignee: types.string,
+  assignee: types.safeReference(User),
 });
 
 const BoardSection = types
@@ -23,6 +24,12 @@ const BoardSection = types
           `boards/${boardID}/tasks/${status}`
         );
         self.tasks = tasks;
+        onSnapshot(self, self.save);
+      }),
+      save: flow(function* ({ tasks }) {
+        const { id: boardID } = getParent(self, 2);
+        const { id: status } = self;
+        yield apiCall.put(`boards/${boardID}/tasks/${status}`, { tasks });
       }),
       afterCreate() {
         self.load();
@@ -30,11 +37,31 @@ const BoardSection = types
     };
   });
 
-const Board = types.model("Board", {
-  id: types.identifier,
-  title: types.string,
-  sections: types.array(BoardSection),
-});
+const Board = types
+  .model("Board", {
+    id: types.identifier,
+    title: types.string,
+    sections: types.array(BoardSection),
+  })
+  .actions((self) => {
+    return {
+      moveTask(id, source, destination) {
+        const fromSection = self.sections.find(
+          (section) => section.id === source.droppableId
+        );
+        const toSection = self.sections.find(
+          (section) => section.id === destination.droppableId
+        );
+
+        const taskToMoveIndex = fromSection.tasks.findIndex(
+          (task) => task.id === id
+        );
+        const [task] = fromSection.tasks.splice(taskToMoveIndex, 1);
+
+        toSection.tasks.splice(destination.index, 0, task.toJSON());
+      },
+    };
+  });
 
 const BoardsStore = types
   .model("BoardsStore", {
@@ -48,9 +75,12 @@ const BoardsStore = types
   }))
   .actions((self) => {
     return {
+      selectBoard(id) {
+        self.active = id;
+      },
       load: flow(function* () {
         self.boards = yield apiCall.get("boards");
-        self.active = "MAIN";
+        // self.active = "MAIN";
       }),
       afterCreate() {
         self.load();

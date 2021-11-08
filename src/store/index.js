@@ -1,6 +1,7 @@
 import { types } from "mobx-state-tree";
-import BoardsStore from "./boards";
 import UsersStore from "./users";
+import BoardsStore from "./boards";
+
 const RootStore = types.model("RootStore", {
   users: types.optional(UsersStore, {}),
   boards: types.optional(BoardsStore, {}),
